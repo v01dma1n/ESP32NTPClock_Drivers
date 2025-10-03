@@ -6,8 +6,6 @@ This repository is a collection of hardware-specific display drivers designed to
 
 Each driver in this collection implements the `IDisplayDriver` interface from the core library. This allows the main clock engine to remain generic while supporting a wide variety of display technologies like 7-segment LEDs and VFDs.
 
-![Bubble LED Clock ](photos/20250917_200239.jpg)
-
 ## ⚠️ Prerequisites
 
 This library is an add-on and **requires** the core `ESP32NTPClock` library to be installed.
