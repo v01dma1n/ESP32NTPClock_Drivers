@@ -16,7 +16,8 @@ public:
     void clear() override;
     void setChar(int position, char character, bool dot = false) override;
     void setSegments(int position, uint16_t mask) override;
-    void writeDisplay() override;
+    void writeDisplay() override; // writeDisplay() is now a NO-OP (does nothing)
+    void writeNextDigit() override; // function called by the high-priority displayTask
     bool needsContinuousUpdate() const override;
 
     unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;

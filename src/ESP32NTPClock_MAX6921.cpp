@@ -196,13 +196,27 @@ void DispDriverMAX6921::spiCmd(unsigned long data) {
     _spi->endTransaction();
 }
 
+/**
+ * @brief This function is now a NO-OP.
+ * It is called by the DisplayManager but does nothing, as the
+ * displayTask is now responsible for multiplexing.
+ */
 void DispDriverMAX6921::writeDisplay() {
+    // Do nothing.
+}
+
+/**
+ * @brief NEW function to write only the *next* digit.
+ * This is called by the high-priority displayTask.
+ * It is non-blocking.
+ */
+void DispDriverMAX6921::writeNextDigit() {
     // This simple, blocking version is the most robust for software multiplexing.
-    digitalWrite(_blankPin, HIGH);
-    spiCmd(GRIDS[_currentDigit] | _displayBuffer[_currentDigit]);
-    digitalWrite(_blankPin, LOW);
-    delayMicroseconds(1500); // Guarantees a 1.5ms on-time per digit.
-    _currentDigit = (_currentDigit + 1) % _displaySize;
+    digitalWrite(_blankPin, HIGH); // Blank display
+    spiCmd(GRIDS[_currentDigit] | _displayBuffer[_currentDigit]); // Send data
+    digitalWrite(_blankPin, LOW);  // Unblank display
+   
+    _currentDigit = (_currentDigit + 1) % _displaySize; // Move to next digit
 }
 
 bool DispDriverMAX6921::needsContinuousUpdate() const {
