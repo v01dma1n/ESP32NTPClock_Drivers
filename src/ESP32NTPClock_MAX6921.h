@@ -7,6 +7,7 @@
 class DispDriverMAX6921 : public IDisplayDriver {
 public:
     DispDriverMAX6921(int displaySize, int sclkPin, int misoPin, int mosiPin, int ssPin, int blankPin);
+    ~DispDriverMAX6921(); 
 
     // IDisplayDriver interface implementation
     void begin() override;
@@ -16,9 +17,12 @@ public:
     void setChar(int position, char character, bool dot = false) override;
     void setSegments(int position, uint16_t mask) override;
     void writeDisplay() override;
+    bool needsContinuousUpdate() const override;
+
+    unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;
+    void setBuffer(const std::vector<unsigned long>& newBuffer) override;
 
 private:
-    unsigned long mapAsciiToSegment(char ascii_char);
     void spiCmd(unsigned long data);
 
     int _displaySize;
