@@ -6,7 +6,7 @@
 
 class DispDriverMAX6921 : public IDisplayDriver {
 public:
-    DispDriverMAX6921(int displaySize, int sclkPin, int misoPin, int mosiPin, int ssPin, int blankPin);
+    DispDriverMAX6921(int displaySize);
     ~DispDriverMAX6921(); 
 
     // IDisplayDriver interface implementation
@@ -22,17 +22,14 @@ public:
 
     unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;
     void setBuffer(const std::vector<unsigned long>& newBuffer) override;
+    void getFrameData(unsigned long* buffer) override;
 
 private:
     void spiCmd(unsigned long data);
 
     int _displaySize;
-    int _blankPin;
-    int _ssPin;
     unsigned long* _displayBuffer; // Dynamically allocated buffer
-    
-    SPIClass* _spi;
-    int _currentDigit;
+   
 };
 
 #endif // ESP32NTPCLOCK_MAX6921_H

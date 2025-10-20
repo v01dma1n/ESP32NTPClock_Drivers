@@ -1,20 +1,19 @@
 #include "ESP32NTPClock_MAX6921.h"
 #include "enc_debug.h"
 
-// --- Pin and Segment mapping from your disp_phys.h ---
 // Grids (Digits)
-static const unsigned long GRIDS[] = {
-    0b00000000010000000000, // GRD_01
-    0b00000000100000000000, // GRD_02
-    0b00000010000000000000, // GRD_03
-    0b00010000000000000000, // GRD_04
-    0b10000000000000000000, // GRD_05
-    0b00000000000000000010, // GRD_06
-    0b00000000000000000100, // GRD_07
-    0b00000000000000100000, // GRD_08
-    0b00000000000100000000, // GRD_09
-    0b00000000001000000000  // GRD_10
-};
+// static const unsigned long GRIDS[] = {
+//     0b00000000010000000000, // GRD_01
+//     0b00000000100000000000, // GRD_02
+//     0b00000010000000000000, // GRD_03
+//     0b00010000000000000000, // GRD_04
+//     0b10000000000000000000, // GRD_05
+//     0b00000000000000000010, // GRD_06
+//     0b00000000000000000100, // GRD_07
+//     0b00000000000000100000, // GRD_08
+//     0b00000000000100000000, // GRD_09
+//     0b00000000001000000000  // GRD_10
+// };
 
 //   --     a  
 //  |  |  f   b
@@ -114,22 +113,17 @@ static const unsigned long FONT_MAP[] = {
 */
 // --- Class Implementation ---
 
-DispDriverMAX6921::DispDriverMAX6921(int displaySize, int sclkPin, int misoPin, int mosiPin, int ssPin, int blankPin)
-    : _displaySize(displaySize), _blankPin(blankPin), _ssPin(ssPin), _currentDigit(0) {
+DispDriverMAX6921::DispDriverMAX6921(int displaySize)
+    : _displaySize(displaySize) {
     _displayBuffer = new unsigned long[_displaySize]();
-    _spi = new SPIClass(VSPI);
-    _spi->begin(sclkPin, misoPin, mosiPin, ssPin);
 }
 
 DispDriverMAX6921::~DispDriverMAX6921() {
     delete[] _displayBuffer;
-    delete _spi;
 }
 
 void DispDriverMAX6921::begin() {
-    pinMode(_ssPin, OUTPUT);
-    pinMode(_blankPin, OUTPUT);
-    digitalWrite(_blankPin, LOW); // Blank the display initially
+    clear();
 }
 
 int DispDriverMAX6921::getDisplaySize() {
@@ -186,16 +180,6 @@ void DispDriverMAX6921::setSegments(int position, uint16_t mask) {
     _displayBuffer[position] = vfd_mask;
 }
 
-void DispDriverMAX6921::spiCmd(unsigned long data) {
-    _spi->beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
-
-    digitalWrite(_ssPin, LOW);
-    _spi->transfer32(data); // MAX6921 is 20-bit, but sending 32 is fine
-    digitalWrite(_ssPin, HIGH);
-
-    _spi->endTransaction();
-}
-
 /**
  * @brief This function is now a NO-OP.
  * It is called by the DisplayManager but does nothing, as the
@@ -205,18 +189,19 @@ void DispDriverMAX6921::writeDisplay() {
     // Do nothing.
 }
 
+void DispDriverMAX6921::getFrameData(unsigned long* buffer) {
+    if (buffer != nullptr && _displayBuffer != nullptr) {
+        memcpy(buffer, _displayBuffer, _displaySize * sizeof(unsigned long));
+    }
+}
+
 /**
  * @brief NEW function to write only the *next* digit.
  * This is called by the high-priority displayTask.
  * It is non-blocking.
  */
 void DispDriverMAX6921::writeNextDigit() {
-    // This simple, blocking version is the most robust for software multiplexing.
-    digitalWrite(_blankPin, HIGH); // Blank display
-    spiCmd(GRIDS[_currentDigit] | _displayBuffer[_currentDigit]); // Send data
-    digitalWrite(_blankPin, LOW);  // Unblank display
-   
-    _currentDigit = (_currentDigit + 1) % _displaySize; // Move to next digit
+    // Do nothing.
 }
 
 bool DispDriverMAX6921::needsContinuousUpdate() const {
