@@ -1,19 +1,5 @@
 #include "ESP32NTPClock_MAX6921_Hardware.h"
 
-// Grid masks for 10-digit display
-// static const unsigned long GRIDS[] = {
-//     0x00080000, // Digit 0
-//     0x00100000, // Digit 1
-//     0x00200000, // Digit 2
-//     0x00400000, // Digit 3
-//     0x00800000, // Digit 4
-//     0x01000000, // Digit 5
-//     0x02000000, // Digit 6
-//     0x04000000, // Digit 7
-//     0x08000000, // Digit 8
-//     0x10000000  // Digit 9
-// };
-
 // Grids (Digits)
 static const unsigned long GRIDS[] = {
     0b00000000010000000000, // GRD_01
@@ -51,7 +37,7 @@ void DispDriverMAX6921_Hardware::begin() {
 }
 
 void DispDriverMAX6921_Hardware::spiCmd(unsigned long data) {
-    _spi->beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
+    _spi->beginTransaction(SPISettings(MAX6921_SPI_SPEEDMODE0));
     digitalWrite(_ssPin, LOW);
     _spi->transfer32(data); 
     digitalWrite(_ssPin, HIGH);
@@ -59,7 +45,7 @@ void DispDriverMAX6921_Hardware::spiCmd(unsigned long data) {
 }
 
 void DispDriverMAX6921_Hardware::writeDigit(int digit, unsigned long segments) {
-    if (digit < 0 || digit >= 10) return; // Guard clause
+    if (digit < 0 || digit >= MAX6921_DIGIT_COUNT clause
 
     digitalWrite(_blankPin, HIGH); // Blank display
     spiCmd(GRIDS[digit] | segments); // Send data
