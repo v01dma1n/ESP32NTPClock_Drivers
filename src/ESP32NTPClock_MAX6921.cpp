@@ -1,106 +1,13 @@
 #include "ESP32NTPClock_MAX6921.h"
 #include "enc_debug.h"
 
-//   --     a  
-//  |  |  f   b
-//   --     g
-//  |  |  e   c
-//   --     d
-//                                       1111111111                              
-//                                       98765432109876543210
-// Segment                               -d,-ef-g----ab-c.---
-static const unsigned long SEG_A     = 0b00000000000010000000;
-static const unsigned long SEG_B     = 0b00000000000001000000;
-static const unsigned long SEG_C     = 0b00000000000000010000;
-static const unsigned long SEG_D     = 0b01000000000000000000;
-static const unsigned long SEG_E     = 0b00001000000000000000;
-static const unsigned long SEG_F     = 0b00000100000000000000;
-static const unsigned long SEG_G     = 0b00000001000000000000;
-static const unsigned long SEG_DOT   = 0b00000000000000001000;
-static const unsigned long SEG_COMMA = 0b00100000000000000000;
-
-// This table maps ASCII characters (from ' ' to 'Z') to the VFD segment masks.
-static const unsigned long VFD_FONT_MAP[] = {
-    0,                                                                  // ' ' (space)
-    0,                                                                  // !
-    SEG_F | SEG_B,                                  // "
-    0,                                              // #
-    0,                                              // $
-    0,                                              // %
-    0,                                              // &
-    SEG_A,                                          // '
-    0,                                              // (
-    0,                                              // )
-    0,                                              // *
-    0,                                              // +
-    0,                                              // ,
-    SEG_G,                                         // -
-    0,                                             // . (handled by dot boolean)
-    0,                                                                 // /
-    SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F, // 0
-    SEG_B | SEG_C,                                              // 1
-    SEG_A | SEG_B | SEG_G | SEG_E | SEG_D,            // 2
-    SEG_A | SEG_B | SEG_G | SEG_C | SEG_D,            // 3
-    SEG_F | SEG_G | SEG_B | SEG_C,                        // 4
-    SEG_A | SEG_F | SEG_G | SEG_C | SEG_D,            // 5
-    SEG_A | SEG_F | SEG_E | SEG_D | SEG_C | SEG_G, // 6
-    SEG_A | SEG_B | SEG_C,                                    // 7
-    SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F | SEG_G, // 8
-    SEG_A | SEG_F | SEG_G | SEG_B | SEG_C | SEG_D, // 9
-    0,                                                                  // : (colon)
-    0,                                                                  // ;
-    0,                                                                  // <
-    0,                                                                  // =
-    0,                                                                  // >
-    SEG_A | SEG_B | SEG_G | SEG_E,                        // ?
-    0,                                                                  // @
-    SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, // A
-    SEG_C | SEG_D | SEG_E | SEG_F | SEG_G,            // B (lowercase b)
-    SEG_A | SEG_D | SEG_E | SEG_F,                        // C
-    SEG_B | SEG_C | SEG_D | SEG_E | SEG_G,            // D (lowercase d)
-    SEG_A | SEG_D | SEG_E | SEG_F | SEG_G,            // E
-    SEG_A | SEG_E | SEG_F | SEG_G,                        // F
-    SEG_A | SEG_C | SEG_D | SEG_E | SEG_F,            // G
-    SEG_C | SEG_E | SEG_F | SEG_G,                        // H (lowercase h)
-    SEG_E | SEG_F,                                              // I
-    SEG_B | SEG_C | SEG_D | SEG_E,                        // J
-    0,                                                                  // K
-    SEG_D | SEG_E | SEG_F,                                    // L
-    SEG_A | SEG_C | SEG_E | SEG_G,                            // M (lowercase n with top dash)
-    SEG_C | SEG_E | SEG_G,                                    // N (lowercase n)
-    SEG_C | SEG_D | SEG_E | SEG_G,                        // O (lowercase o)
-    SEG_A | SEG_B | SEG_E | SEG_F | SEG_G,            // P
-    SEG_A | SEG_B | SEG_C | SEG_F | SEG_G,            // Q
-    SEG_E | SEG_G,                                              // R (lowercase r)
-    SEG_A | SEG_F | SEG_G | SEG_C | SEG_D,            // S
-    SEG_D | SEG_E | SEG_F | SEG_G,                        // T (lowercase t)
-    SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,                                    // U (lowercase u)
-    SEG_C | SEG_D | SEG_E,                                  // V
-    SEG_A | SEG_C | SEG_D | SEG_E,                             // W
-    SEG_B | SEG_C | SEG_E | SEG_F ,                                                // X
-    SEG_B | SEG_C | SEG_D | SEG_F | SEG_G,            // Y
-    0                                                                   // Z
-};
-
-/*
-// Font map
-static const unsigned long FONT_MAP[] = {
-    SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,       // 0
-    SEG_B|SEG_C,                               // 1
-    SEG_A|SEG_B|SEG_G|SEG_E|SEG_D,             // 2
-    SEG_A|SEG_B|SEG_G|SEG_C|SEG_D,             // 3
-    SEG_F|SEG_G|SEG_B|SEG_C,                   // 4
-    SEG_A|SEG_F|SEG_G|SEG_C|SEG_D,             // 5
-    SEG_A|SEG_F|SEG_E|SEG_D|SEG_C|SEG_G,       // 6
-    SEG_A|SEG_B|SEG_C,                         // 7
-    SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G, // 8
-    SEG_A|SEG_F|SEG_G|SEG_B|SEG_C|SEG_D,       // 9
-};
-*/
 // --- Class Implementation ---
 
-DispDriverMAX6921::DispDriverMAX6921(int displaySize)
-    : _displaySize(displaySize) {
+DispDriverMAX6921::DispDriverMAX6921(int displaySize, IFont& fontProvider, const SevenSegmentBitmaskMap& segmentMap)
+    : _displaySize(displaySize),
+      _fontProvider(fontProvider),
+      _segmentMap(segmentMap)
+{
     _displayBuffer = new unsigned long[_displaySize]();
 }
 
@@ -126,20 +33,30 @@ void DispDriverMAX6921::clear() {
     }
 }
 
+unsigned long DispDriverMAX6921::mapGenericMaskToHardware(uint8_t mask, bool dot) const {
+    unsigned long hw_mask = 0;
+    // Use the injected _segmentMap [cite: 617]
+    if (mask & GENERIC_SEG_A) hw_mask |= _segmentMap.segA;
+    if (mask & GENERIC_SEG_B) hw_mask |= _segmentMap.segB;
+    if (mask & GENERIC_SEG_C) hw_mask |= _segmentMap.segC;
+    if (mask & GENERIC_SEG_D) hw_mask |= _segmentMap.segD;
+    if (mask & GENERIC_SEG_E) hw_mask |= _segmentMap.segE;
+    if (mask & GENERIC_SEG_F) hw_mask |= _segmentMap.segF;
+    if (mask & GENERIC_SEG_G) hw_mask |= _segmentMap.segG;
+    if (dot || (mask & GENERIC_SEG_DOT)) hw_mask |= _segmentMap.segDot;
+    return hw_mask;
+}
+
 unsigned long DispDriverMAX6921::mapAsciiToSegment(char ascii_char, bool dot) {
-    char c = toupper(ascii_char);
-    unsigned long segments = 0;
-    if (c >= ' ' && c <= 'Z') {
-        segments = VFD_FONT_MAP[c - ' '];
-    }
-    if (dot) {
-        segments |= SEG_DOT;
-    }
-    return segments;
+    // 1. Get generic 8-bit mask from the injected font provider
+    uint8_t genericMask = _fontProvider.getSegmentMask(ascii_char);
+    
+    // 2. Map generic mask to this driver's specific hardware mask
+    return mapGenericMaskToHardware(genericMask, dot);
 }
 
 void DispDriverMAX6921::setChar(int position, char character, bool dot) {
-    if (position < 0 || position >= _displaySize) return;
+if (position < 0 || position >= _displaySize) return; 
     _displayBuffer[position] = mapAsciiToSegment(character, dot);
 }
 
@@ -151,19 +68,9 @@ void DispDriverMAX6921::setBuffer(const std::vector<unsigned long>& newBuffer) {
 }
 
 void DispDriverMAX6921::setSegments(int position, uint16_t mask) {
-    // This function is less relevant for this driver, but we implement it.
-    // It maps the standard 7-segment bits to the MAX6921 bits.
-    if (position < 0 || position >= _displaySize) return;
-    unsigned long vfd_mask = 0;
-    if (mask & 0b00000001) vfd_mask |= SEG_A;
-    if (mask & 0b00000010) vfd_mask |= SEG_B;
-    if (mask & 0b00000100) vfd_mask |= SEG_C;
-    if (mask & 0b00001000) vfd_mask |= SEG_D;
-    if (mask & 0b00010000) vfd_mask |= SEG_E;
-    if (mask & 0b00100000) vfd_mask |= SEG_F;
-    if (mask & 0b01000000) vfd_mask |= SEG_G;
-    if (mask & 0b10000000) vfd_mask |= SEG_DOT;
-    _displayBuffer[position] = vfd_mask;
+if (position < 0 || position >= _displaySize) return; 
+    // The incoming mask is already a generic 0b(dot)gfedcba mask
+    _displayBuffer[position] = mapGenericMaskToHardware((uint8_t)mask, false);
 }
 
 /**

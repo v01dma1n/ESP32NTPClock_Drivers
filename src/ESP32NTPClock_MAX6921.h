@@ -2,11 +2,13 @@
 #define ESP32NTPCLOCK_MAX6921_H
 
 #include <ESP32NTPClock.h>
+#include "i_font.h"
+#include "seven_segment_map.h"
 #include <SPI.h>
 
 class DispDriverMAX6921 : public IDisplayDriver {
 public:
-    DispDriverMAX6921(int displaySize);
+    DispDriverMAX6921(int displaySize, IFont& fontProvider, const SevenSegmentBitmaskMap& segmentMap);
     ~DispDriverMAX6921(); 
 
     // IDisplayDriver interface implementation
@@ -29,7 +31,11 @@ private:
 
     int _displaySize;
     unsigned long* _displayBuffer; // Dynamically allocated buffer
+
+    IFont& _fontProvider;
+    const SevenSegmentBitmaskMap& _segmentMap;
    
+    unsigned long mapGenericMaskToHardware(uint8_t genericMask, bool dot) const;
 };
 
 #endif // ESP32NTPCLOCK_MAX6921_H
