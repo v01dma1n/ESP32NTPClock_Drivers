@@ -1,3 +1,4 @@
+#include "enc_debug.h"
 #include "ESP32NTPClock_HT16K33.h"
 #include <Arduino.h>
 #include <cctype> 
@@ -64,6 +65,9 @@ void DispDriverHT16K33::clear() {
 }
 
 void DispDriverHT16K33::writeDisplay() {
+
+    // ENC_LOG("HT16K33: writeDisplay() called."); // Log entry into the function
+
     Wire.beginTransmission(_i2c_addr);
     Wire.write((uint8_t)0x00); // Start at RAM address 0
 
@@ -72,7 +76,12 @@ void DispDriverHT16K33::writeDisplay() {
         Wire.write(_displayBuffer[i] & 0xFF);
         Wire.write(_displayBuffer[i] >> 8);
     }
-    Wire.endTransmission();
+    byte error =Wire.endTransmission();
+    if (error != 0) {
+        ENC_LOG("HT16K33 I2C Error: endTransmission returned %d", error);
+    } else {
+        // ENC_LOG("HT16K33: writeDisplay() success."); // Optional: Log success
+    }
 }
 
 void DispDriverHT16K33::setChar(int position, char character, bool dot) {
