@@ -92,3 +92,38 @@ void DispDriverHT16K33::setSegments(int position, uint16_t mask) {
     _displayBuffer[_displaySize - 1 - position] = mask;
 }
 
+unsigned long DispDriverHT16K33::mapAsciiToSegment(char ascii_char, bool dot) {
+    // --- THIS IS THE FIX ---
+    // Change 'character' to 'ascii_char' to match the parameter name
+    char c = toupper(ascii_char); 
+    
+    uint16_t segments = 0; 
+    if (c >= ' ' && c <= '~') { // Check range (adjust '~' if font table differs)
+        segments = pgm_read_byte(sevensegfonttable + c - ' ');
+    }
+    if (dot) {
+        segments |= 0b10000000; 
+    }
+    return segments;
+}
+
+void DispDriverHT16K33::setBuffer(const std::vector<unsigned long>& newBuffer) {
+    int sizeToCopy = std::min((int)newBuffer.size(), _displaySize);
+    for (int i = 0; i < sizeToCopy; ++i) {
+        // We need to handle the display orientation (right-to-left mapping)
+        _displayBuffer[_displaySize - 1 - i] = (uint16_t)newBuffer[i];
+    }
+    // Clear any remaining digits if the new buffer is shorter
+    for (int i = sizeToCopy; i < _displaySize; ++i) {
+         _displayBuffer[_displaySize - 1 - i] = 0;
+    }
+}
+
+void DispDriverHT16K33::getFrameData(unsigned long* buffer) {
+    if (buffer != nullptr) {
+        // Copy data respecting the right-to-left mapping
+        for(int i = 0; i < _displaySize; ++i) {
+            buffer[i] = _displayBuffer[_displaySize - 1 - i];
+        }
+    }
+}

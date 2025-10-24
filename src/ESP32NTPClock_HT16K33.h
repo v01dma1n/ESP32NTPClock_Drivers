@@ -25,6 +25,10 @@ public:
 
     void writeDisplay() override;
 
+    unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;
+    void setBuffer(const std::vector<unsigned long>& newBuffer) override;
+    void getFrameData(unsigned long* buffer) override;    
+
 private:
     uint16_t _displayBuffer[HT16K33_MAX_DISP_SIZE]; 
     int _displaySize;
