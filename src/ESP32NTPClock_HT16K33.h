@@ -22,7 +22,7 @@ public:
     void clear() override;
     void setChar(int position, char character, bool dot = false) override;
     void setSegments(int position, uint16_t mask) override;
-
+    void setDot(int position, bool on) override;
     void writeDisplay() override;
 
     unsigned long mapAsciiToSegment(char ascii_char, bool dot) override;

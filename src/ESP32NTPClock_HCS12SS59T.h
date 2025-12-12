@@ -15,6 +15,7 @@ public:
     void clear() override;
     void setChar(int position, char character, bool dot = false) override;
     void setSegments(int position, uint16_t mask) override;
+    void setDot(int position, bool on) override;
     void writeDisplay() override;
 
 private:

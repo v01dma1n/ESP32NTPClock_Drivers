@@ -73,6 +73,18 @@ if (position < 0 || position >= _displaySize) return;
     _displayBuffer[position] = mapGenericMaskToHardware((uint8_t)mask, false);
 }
 
+void DispDriverMAX6921::setDot(int position, bool on) {
+    if (position < 0 || position >= _displaySize) return;
+    
+    if (on) {
+        // Use bitwise OR to turn ON the dot bit
+        _displayBuffer[position] |= _segmentMap.segDot;
+    } else {
+        // Use bitwise AND with the INVERSE of the dot bit to turn it OFF
+        _displayBuffer[position] &= ~_segmentMap.segDot;
+    }
+}
+
 /**
  * @brief This function is now a NO-OP.
  * It is called by the DisplayManager but does nothing, as the

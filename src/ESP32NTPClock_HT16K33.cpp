@@ -9,9 +9,8 @@
 #define HT16K33_CMD_DISPLAY_ON     0x81
 #define HT16K33_CMD_BRIGHTNESS     0xE0
 
-// Font Table (this is unchanged)
+// Font Table 
 const uint8_t PROGMEM DispDriverHT16K33::sevensegfonttable[] = {
-    // ... font data remains here, no changes needed ...
     0b00000000, 0b10000110, 0b00100010, 0b01111110, 0b01101101, 0b11010010,
     0b01000110, 0b00100000, 0b00101001, 0b00001011, 0b00100001, 0b01110000,
     0b00010000, 0b01000000, 0b10000000, 0b01010010, 0b00111111, 0b00000110,
@@ -99,6 +98,21 @@ void DispDriverHT16K33::setChar(int position, char character, bool dot) {
 void DispDriverHT16K33::setSegments(int position, uint16_t mask) {
     if (position < 0 || position >= _displaySize) return;
     _displayBuffer[_displaySize - 1 - position] = mask;
+}
+
+void DispDriverHT16K33::setDot(int position, bool on) {
+    if (position < 0 || position >= _displaySize) return;
+
+    // The display buffer maps digits right-to-left
+    int bufferIndex = _displaySize - 1 - position;
+
+    if (on) {
+        // Use bitwise OR to turn ON the dot segment (bit 7)
+        _displayBuffer[bufferIndex] |= 0b10000000;
+    } else {
+        // Use bitwise AND with the INVERSE of the dot mask to turn it OFF
+        _displayBuffer[bufferIndex] &= ~0b10000000;
+    }
 }
 
 unsigned long DispDriverHT16K33::mapAsciiToSegment(char ascii_char, bool dot) {
